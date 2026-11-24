@@ -1,6 +1,6 @@
 # Homework 1 — Sales aggregation
 
-[Assignment PDF](assignment.pdf) · [Submitted work (PDF, student ID redacted)](submission-redacted.pdf)
+[Assignment PDF](assignment.pdf) 
 
 These five reports use grouped aggregates and join the results back to the detail rows when a report needs the product, date, or state associated with an extreme value. The walkthrough keeps that structure and uses descriptive CTE names and explicit joins.
 
