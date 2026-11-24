@@ -1,0 +1,240 @@
+/* 
+Arjun Patel 
+CS/CPE 442: DBMS - Database Management Systems 
+Professor Sam Kim 
+04-04-25
+"I pledge my honor that I have abided by the Stevens Honor System"-A.P
+Note: Inspiration for each query was obtained strictly from the "HW #1-Main Ideas" file on canvas
+*/
+
+--Query 1 
+
+--Compute the 3 aggregates, min(quant), max(quant) and avg(quant) for ‘cust’
+WITH p1 AS(
+    SELECT cust, min(quant) min_q, max(quant) max_q, round(avg(quant)) avg_q
+	FROM sales
+	GROUP BY cust
+),
+--Join 1 with ‘sales’ and obtain the details for min(quant).
+p2 AS(
+	SELECT p1.cust, p1.min_q, p1.max_q, p1.avg_q, 
+		   s.prod min_prod, s.date min_date, s.state st
+	FROM p1, sales s
+	WHERE p1.cust = s.cust AND p1.min_q = s.quant
+),
+--Join 2 with ‘sales’ and obtain the details for max(quant).
+p3 AS(
+	SELECT p2.cust AS customer, p2.min_q, p2.min_prod, p2.min_date, p2.st,
+	       p2.max_q, s.prod max_prod, s.date max_date, s.state st, p2.avg_q
+	FROM p2, sales s
+	WHERE p2.cust = s.cust AND p2.max_q = s.quant
+	ORDER BY customer
+)
+SELECT * FROM p3
+
+
+--Query 2
+
+--Compute total quant for each combination of (year, month, day):
+WITH p1 AS(
+	SELECT year, month, day, sum(quant) sum_q
+	FROM sales
+	GROUP BY year, month, day
+),
+--For (year, month), find the max(sum_q) – busiest_total_q
+p2 AS(
+	SELECT year, month, MAX(sum_q) AS busiest_total_q
+	FROM p1
+	GROUP BY year, month
+),
+--Do the same as step #2 but this time, find min(sum_q) – slowest_total_q
+p3 AS(
+	SELECT year, month, MIN(sum_q) AS slowest_total_q
+	FROM p1
+	GROUP BY year, month
+),
+--Join p1 and p2 to find the ‘day’ corresponding to the busiest_total_q.
+p4 AS(
+	SELECT p2.year, p2.month, p2.busiest_total_q, day AS busiest_day
+	FROM p1, p2
+	WHERE p1.year = p2.year
+	AND p1.month = p2.month
+	AND p1.sum_q = p2.busiest_total_q
+),
+--Join p1 and p2 to find the ‘day’ corresponding to the slowest_total_q.
+p5 AS(
+	SELECT p3.year, p3.month, p3.slowest_total_q, day AS slowest_day
+	FROM p1, p3
+	WHERE p1.year = p3.year
+	AND p1.month = p3.month
+	AND p1.sum_q = p3.slowest_total_q
+),
+p6 AS(
+	SELECT p4.year, p4.month, p4.busiest_day, p4.busiest_total_q , p5.slowest_day, p5.slowest_total_q
+	FROM p4, p5
+	WHERE p4.year = p5.year AND p4.month = p5.month
+	ORDER BY year,month
+)
+SELECT * FROM p6
+
+
+--Query 3
+
+--Compute total count for each combination of (cust, prod):
+WITH p1 AS(
+	SELECT cust, prod, count(quant) count_q
+	FROM sales
+	GROUP BY cust, prod
+),
+--For each ‘cust’, find the max(count_q) and min(count_q)
+p2 AS(
+	SELECT cust, max(count_q) most_fav_count, min(count_q) least_fav_count
+	FROM p1
+	GROUP BY cust
+),
+--Join p1 and p2 to find the ‘prod’ (most_fav_prod) corresponding to the ‘most_fav_count’.
+p3 AS(
+	SELECT p2.cust, prod as most_fav_prod
+	FROM p1, p2
+	WHERE p1.cust = p2.cust
+	AND p1.count_q = p2.most_fav_count
+),
+--Do the same as step #3, except this time, find the least_fav_prod.
+p4 AS(
+	SELECT p2.cust, prod as least_fav_prod
+	FROM p1, p2
+	WHERE p1.cust = p2.cust
+	AND p1.count_q = p2.least_fav_count
+),
+--Join p3 & p4 to produce the output.
+p5 AS(
+	SELECT p4.cust AS customer, p3.most_fav_prod, p4.least_fav_prod
+	FROM p3, p4
+	WHERE p3.cust = p4.cust
+	ORDER BY customer
+)
+SELECT * FROM p5
+
+
+--Query 4
+
+--Compute the average for SPRING:
+WITH p1 AS(
+	SELECT cust, prod, round(avg(quant)) spring_avg
+	FROM sales
+	WHERE month in (3,4,5)
+	GROUP BY cust, prod
+),
+--Do the same, except this time for SUMMER.
+p2 AS(
+	SELECT cust, prod, round(avg(quant)) summer_avg
+	FROM sales
+	WHERE month in (6,7,8)
+	GROUP BY cust, prod
+),
+--Do the same, except this time for FALL.
+p3 AS(
+	SELECT cust, prod, round(avg(quant)) fall_avg
+	FROM sales
+	WHERE month in (9,10,11)
+	GROUP BY cust, prod
+),
+--Do the same, except this time for WINTER.
+p4 AS(
+	SELECT cust, prod, round(avg(quant)) winter_avg
+	FROM sales
+	WHERE month in (12,1,2)
+	GROUP BY cust, prod
+),
+--Do the same, except this time compute avg, sum and count for the whole year – this is a simple group-by for (cust, prod).
+p5 AS(
+	SELECT cust, prod, round(avg(quant)) average, sum(quant) total, count(quant) count 
+	FROM sales 
+	GROUP BY cust, prod
+),
+--Join p1, p2, p3, p4 and p5 based on cust and prod.
+p6 AS(
+	SELECT p1.cust AS customer, p1.prod product, p1.spring_avg, p2.summer_avg, p3.fall_avg, p4.winter_avg, p5.average, p5.total, p5.count
+	FROM p1, p2, p3, p4, p5
+    WHERE p1.cust = p2.cust AND p1.prod = p2.prod 
+	AND p1.cust = p3.cust AND p1.prod = p3.prod 
+	AND p1.cust = p4.cust AND p1.prod = p4.prod 
+	AND p1.cust = p5.cust AND p1.prod = p5.prod
+	ORDER BY customer
+)
+SELECT * FROM p6
+
+
+--Query 5 
+
+--For each prod, find the max(q) for quarter 1:
+WITH p1 AS(
+	SELECT prod, max(quant) q1_max
+	FROM sales
+	WHERE month in (1, 2, 3)
+	GROUP BY prod
+),
+--For each the date corresponding to the q1_max
+p2 AS(
+	SELECT p1.prod, q1_max, s.date q1_max_date
+	FROM sales s, p1
+	WHERE p1.prod = s.prod
+	AND p1.q1_max = s.quant
+	AND s.month in (1, 2, 3)
+),
+--Do step 1, except this time for q2.
+p3 AS( 
+	SELECT prod, max(quant) q2_max
+	FROM sales
+	WHERE month in (4, 5, 6)
+	GROUP BY prod
+),
+--Do step 2, except this time for q2.
+p4 AS(
+	SELECT p3.prod, q2_max, s.date q2_max_date
+	FROM sales s, p3 
+	WHERE p3.prod = s.prod
+	AND p3.q2_max = s.quant
+	AND s.month in (4, 5, 6)
+),
+--Do step 1, except this time for q3.
+p5 AS(
+	SELECT prod, max(quant) q3_max
+	FROM sales
+	WHERE month in (7, 8, 9)
+	GROUP BY prod
+),
+--Do step 2, except this time for q3.
+p6 AS(
+	SELECT p5.prod, q3_max, s.date q3_max_date
+	FROM sales s, p5
+	WHERE p5.prod = s.prod
+	AND p5.q3_max = s.quant
+	AND s.month in (7, 8, 9)
+),
+--Do step 1, except this time for q4.
+p7 AS(
+	SELECT prod, max(quant) q4_max
+	FROM sales
+	WHERE month in (10, 11, 12)
+	GROUP BY prod
+),
+--Do step 2, except this time for q4.
+p8 AS(
+	SELECT p7.prod, p7.q4_max, s.date q4_max_date
+	FROM sales s, p7
+	WHERE p7.prod = s.prod
+	AND p7.q4_max = s.quant
+	AND s.month in (10, 11, 12)
+),
+--Join q2, q4, q6 and q8 for the final output.
+p9 AS(
+	SELECT p1.prod AS product, p2.q1_max , p2.q1_max_date date, p4.q2_max, p4.q2_max_date date, p6.q3_max, p6.q3_max_date date, p8.q4_max, p8.q4_max_date date
+	FROM p1, p2, p3, p4, p5, p6, p7, p8
+	WHERE p1.prod = p2.prod AND p2.prod = p3.prod
+	AND p3.prod = p4.prod AND p4.prod = p5.prod
+	AND p5.prod = p6.prod AND p6.prod = p7.prod
+	AND p7.prod = p8.prod 
+	ORDER BY product
+)
+SELECT * FROM p9
