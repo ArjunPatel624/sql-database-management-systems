@@ -1,6 +1,6 @@
 # Homework 2 — Dependent aggregates
 
-[Assignment PDF](assignment.pdf) · [Original submission (TXT)](CS_442_HW02.txt)
+[Assignment PDF](assignment.pdf) 
 
 These reports compare each group's sales with aggregates from neighboring periods or peer groups. The median report uses cumulative counts to locate the middle observation under the assignment's odd-count assumption.
 
