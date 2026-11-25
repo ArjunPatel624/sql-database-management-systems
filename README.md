@@ -1,6 +1,6 @@
 # Database Management Systems | SQL
 
-SQL coursework by Arjun Patel for **CS/CPE 442 — Database Management Systems I** at Stevens Institute of Technology, Spring 2025.
+SQL coursework  for **CS/CPE 442 — Database Management Systems I** 
 
 | Assignment | Reports | SQL techniques |
 | --- | --- | --- |
